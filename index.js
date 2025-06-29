@@ -24,8 +24,8 @@ const usernames = [
 let currentUsername = usernames[Math.floor(Math.random() * usernames.length)];
 
 const bot = mineflayer.createBot({
-  host: 'BonvaBao123.aternos.me', // 🔁 Thay bằng IP
-  port: 34742,                // 🔁 Thay bằng port
+  host: 'BonvaBao123.aternos.me',
+  port: 34742,
   username: currentUsername
 });
 
@@ -45,6 +45,7 @@ bot.once('spawn', () => {
   };
   bot.autoEat.enable();
 
+  // Gửi lệnh /reg và /login sau delay ngẫu nhiên
   const regDelay = getRandomInt(5000, 7000);
   const loginDelay = getRandomInt(1000, 2000);
 
@@ -107,9 +108,16 @@ function itemProtection(item) {
   return 0;
 }
 
+// Combat thông minh + chờ cooldown
+let lastAttackTime = 0;
 function startSmartCombatLoop() {
   setInterval(() => {
-    const target = bot.nearestEntity(e => e.type === 'mob' && e.mobType !== 'Armor Stand' && e.position.distanceTo(bot.entity.position) < 15);
+    const target = bot.nearestEntity(e =>
+      e.type === 'mob' &&
+      e.mobType !== 'Armor Stand' &&
+      e.position.distanceTo(bot.entity.position) < 15
+    );
+
     if (target) {
       const chance = Math.random();
       if (chance < 0.25) {
@@ -118,11 +126,15 @@ function startSmartCombatLoop() {
       } else {
         equipSword();
       }
-      bot.pvp.attack(target);
+
+      if (Date.now() - lastAttackTime > 1100) {
+        bot.pvp.attack(target);
+        lastAttackTime = Date.now();
+      }
     } else {
       bot.pvp.stop();
     }
-  }, 1000);
+  }, 200);
 }
 
 function equipSword() {
@@ -173,7 +185,7 @@ function scheduleNameChange() {
 
     currentUsername = newName;
     console.log(`🔁 Đổi tên bot sang: ${currentUsername}`);
-    process.exit(); // Render sẽ restart lại với tên mới
+    process.exit();
   }, delay);
 }
 
