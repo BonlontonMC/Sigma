@@ -1,19 +1,14 @@
-
 {
-  "name": "mineflayer-smart-combat-bot",
+  "name": "bot",
   "version": "1.0.0",
-  "description": "Bot Mineflayer tự chiến đấu, đổi tên, auto ăn, reconnect, uptime render",
   "main": "index.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "mineflayer": "^4.29.0",
-    "mineflayer-pvp": "^1.3.2",
-    "mineflayer-pathfinder": "^2.4.1",
-    "mineflayer-auto-eat": "^1.2.0",
-    "vec3": "^0.1.7",
-    "express": "^4.18.2"
+    "express": "^4.18.4",
+    "mineflayer": "^4.16.0",
+    "mineflayer-pathfinder": "^2.3.2",
+    "vec3": "^0.1.7"
   }
 }
