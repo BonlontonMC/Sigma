@@ -1,197 +1,105 @@
-// index.js
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements } = require('mineflayer-pathfinder');
-const pvp = require('mineflayer-pvp').plugin;
-const autoeat = require('mineflayer-auto-eat').default;
-const { Vec3 } = require('vec3');
+const { pathfinder } = require('mineflayer-pathfinder');
 const express = require('express');
-
 const app = express();
 const port = 3000;
 
 const usernames = [
-  'KenjiVN', 'NoobBui', 'MrDat2009', 'HuyGamerX', 'DragonBoy99',
-  'nghiemtuan123', 'Anhhacker1', 'Quang_TNT', 'MinhHoangMC', 'proplayervn'
+  'KenjiVN',
+  'NoobBui',
+  'MrDat2009',
+  'HuyGamerX',
+  'DragonBoy99',
+  'nghiemtuan123',
+  'Anhhacker1',
+  'Quang_TNT',
+  'MinhHoangMC',
+  'proplayervn',
 ];
-let currentUsername = usernames[Math.floor(Math.random() * usernames.length)];
 
-// Tạo bot với phiên bản cụ thể cho kết nối 1.21.5 qua ViaBackwards
-const bot = mineflayer.createBot({
-  host: 'BonvaBao123.aternos.me',
-  port: 34742,
-  username: currentUsername,
-  version: '1.20.2', // kết nối như 1.20.2 để tương thích ViaBackwards
-  auth: 'offline'
-});
+let botName = usernames[Math.floor(Math.random() * usernames.length)];
 
-bot.loadPlugin(pathfinder);
-bot.loadPlugin(pvp);
-bot.loadPlugin(autoeat);
-
-bot.once('spawn', () => {
-  const mcData = require('minecraft-data')(bot.version);
-  const movements = new Movements(bot, mcData);
-  bot.pathfinder.setMovements(movements);
-
-  // Cấu hình auto-eat
-  bot.autoEat.options.priority = 'foodPoints';
-  bot.autoEat.options.startAt = 18;
-  bot.autoEat.options.bannedFood = [];
-  bot.autoEat.enable();
-
-  // Xử lý chat đăng ký/đăng nhập nếu server yêu cầu
-  listenLoginMessages();
-
-  equipBestGear();
-  setInterval(equipBestGear, 10000);
-
-  startSmartCombatLoop();
-  scheduleNameChange();
-});
-
-function listenLoginMessages() {
-  bot.on('messagestr', (message) => {
-    const msg = message.toLowerCase();
-    if (msg.includes('/register') || msg.includes('/reg')) {
-      const delay = getRandomInt(5000, 7000);
-      setTimeout(() => {
-        bot.chat('/reg concacduma concacduma');
-      }, delay);
-    } else if (msg.includes('/login')) {
-      const delay = getRandomInt(1000, 2000);
-      setTimeout(() => {
-        bot.chat('/login concacduma');
-      }, delay);
-    }
+function createBot() {
+  const bot = mineflayer.createBot({
+    host: 'BonvaBao123.aternos.me', 
+    port: 34742, 
+    username: botName,
+    version: false,
   });
+
+  bot.loadPlugin(pathfinder);
+
+  bot.once('spawn', () => {
+    console.log(`${bot.username} đã vào game.`);
+
+    const regDelay = getRandomInt(5000, 7000); 
+    const loginDelay = regDelay + getRandomInt(1000, 2000); 
+
+    setTimeout(() => bot.chat('/reg concacduma concacduma'), regDelay);
+    setTimeout(() => bot.chat('/login concacduma'), loginDelay);
+
+    startRandomBehavior(bot);
+    scheduleBotRestart();
+  });
+
+  bot.on('error', console.log);
+
+  bot.on('end', () => {
+    console.log(`${bot.username} đã rời. Đang tạo lại bot...`);
+    botName = usernames[Math.floor(Math.random() * usernames.length)];
+    const respawnDelay = getRandomInt(5000, 7000);
+    setTimeout(createBot, respawnDelay);
+  });
+
+  return bot;
 }
 
-function equipBestGear() {
-  const items = bot.inventory.items();
-  const armorSlots = ['head', 'torso', 'legs', 'feet'];
-  const bestArmor = {};
+function startRandomBehavior(bot) {
+  const actions = ['forward', 'back', 'left', 'right', 'jump', 'sneak', 'rotate', 'clickLeft', 'clickRight'];
 
-  for (const item of items) {
-    const slot = getArmorSlot(item);
-    if (!slot) continue;
-    if (!bestArmor[slot] || itemProtection(item) > itemProtection(bestArmor[slot])) {
-      bestArmor[slot] = item;
-    }
-  }
-
-  for (const slot of armorSlots) {
-    if (bestArmor[slot]) {
-      bot.equip(bestArmor[slot], slot).catch(() => {});
-    }
-  }
-}
-
-function getArmorSlot(item) {
-  if (!item || !item.name) return null;
-  if (item.name.includes('helmet')) return 'head';
-  if (item.name.includes('chestplate')) return 'torso';
-  if (item.name.includes('leggings')) return 'legs';
-  if (item.name.includes('boots')) return 'feet';
-  return null;
-}
-
-function itemProtection(item) {
-  if (!item || !item.name) return 0;
-  const priorities = {
-    netherite: 5,
-    diamond: 4,
-    iron: 3,
-    gold: 2,
-    chainmail: 1,
-    leather: 0
-  };
-  for (const [key, val] of Object.entries(priorities)) {
-    if (item.name.includes(key)) return val;
-  }
-  return 0;
-}
-
-// Combat thông minh + chờ hồi chiêu
-let lastAttackTime = 0;
-function startSmartCombatLoop() {
   setInterval(() => {
-    const target = bot.nearestEntity(e =>
-      e.type === 'mob' &&
-      e.mobType !== 'Armor Stand' &&
-      e.position.distanceTo(bot.entity.position) < 15
-    );
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    const duration = Math.floor(Math.random() * 2000) + 500;
 
-    if (target) {
-      const chance = Math.random();
-      if (chance < 0.25) {
-        equipAxe();
-        tryCritJump();
-      } else {
-        equipSword();
-      }
-
-      if (Date.now() - lastAttackTime > 1100) {
-        bot.pvp.attack(target);
-        lastAttackTime = Date.now();
-      }
-    } else {
-      bot.pvp.stop();
+    switch (action) {
+      case 'forward':
+      case 'back':
+      case 'left':
+      case 'right':
+        bot.setControlState(action, true);
+        setTimeout(() => bot.setControlState(action, false), duration);
+        break;
+      case 'jump':
+      case 'sneak':
+        bot.setControlState(action, true);
+        setTimeout(() => bot.setControlState(action, false), duration);
+        break;
+      case 'rotate':
+        bot.look(Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, true);
+        break;
+      case 'clickLeft':
+        bot.swingArm('right');
+        break;
+      case 'clickRight':
+        bot.activateItem();
+        break;
     }
-  }, 200);
+  }, 3000);
 }
 
-function equipSword() {
-  const sword = bot.inventory.items().find(item => item.name && item.name.includes('sword'));
-  if (sword) bot.equip(sword, 'hand').catch(() => {});
-}
-
-function equipAxe() {
-  const axe = bot.inventory.items().find(item => item.name && item.name.includes('axe'));
-  if (axe) bot.equip(axe, 'hand').catch(() => {});
-}
-
-function tryCritJump() {
-  bot.setControlState('jump', true);
-  setTimeout(() => bot.setControlState('jump', false), 300);
-}
-
-bot.on('entitySwingArm', (entity) => {
-  if (entity.position.distanceTo(bot.entity.position) < 3) {
-    bot.setControlState('sneak', true);
-    setTimeout(() => bot.setControlState('sneak', false), 500);
-  }
-});
-
-app.get('/', (req, res) => res.send('Bot online!'));
-app.listen(port, () => console.log(`✅ Uptime web đang chạy tại http://localhost:${port}`));
-
-bot.on('error', err => console.log('❌ Error:', err));
-
-bot.on('end', () => {
-  const delay = getRandomInt(10000, 20000);
-  console.log(`⛔ Bot bị kick/disconnect. Restart sau ${delay / 1000}s...`);
-  setTimeout(() => process.exit(), delay);
-});
-
-function scheduleNameChange() {
+function scheduleBotRestart() {
   const min = 60 * 60 * 1000;
   const max = 3 * 60 * 60 * 1000;
   const delay = getRandomInt(min, max);
-
-  console.log(`⏳ Sẽ đổi tên bot sau ${(delay / 60000).toFixed(1)} phút.`);
-
-  setTimeout(() => {
-    let newName;
-    do {
-      newName = usernames[Math.floor(Math.random() * usernames.length)];
-    } while (newName === currentUsername);
-
-    currentUsername = newName;
-    console.log(`🔁 Đổi tên bot sang: ${currentUsername}`);
-    process.exit(); // render sẽ restart lại
-  }, delay);
+  console.log(`Bot sẽ đổi tên sau ${Math.floor(delay / 60000)} phút.`);
+  setTimeout(() => process.exit(), delay);
 }
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+app.get('/', (req, res) => res.send('Bot online!'));
+app.listen(port, () => console.log(`Uptime server mở tại http://localhost:${port}`));
+
+createBot();
