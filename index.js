@@ -1,7 +1,7 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const { pvp } = require('mineflayer-pvp');
-const autoeat = require('mineflayer-auto-eat');
+const autoeat = require('mineflayer-auto-eat').default; // ✅ fix: dùng .default
 const { Vec3 } = require('vec3');
 const express = require('express');
 
@@ -45,16 +45,8 @@ bot.once('spawn', () => {
   };
   bot.autoEat.enable();
 
-  // Gửi lệnh /reg và /login sau delay ngẫu nhiên
-  const regDelay = getRandomInt(5000, 7000);
-  const loginDelay = getRandomInt(1000, 2000);
-
-  setTimeout(() => {
-    bot.chat('/reg concacduma concacduma');
-    setTimeout(() => {
-      bot.chat('/login concacduma');
-    }, loginDelay);
-  }, regDelay);
+  // Đăng ký + đăng nhập nếu server yêu cầu
+  listenLoginMessages();
 
   equipBestGear();
   setInterval(equipBestGear, 10000);
@@ -62,6 +54,22 @@ bot.once('spawn', () => {
   startSmartCombatLoop();
   scheduleNameChange();
 });
+
+function listenLoginMessages() {
+  bot.on('messagestr', (message) => {
+    if (message.toLowerCase().includes('/register') || message.toLowerCase().includes('/reg')) {
+      const delay = getRandomInt(5000, 7000);
+      setTimeout(() => {
+        bot.chat('/reg concacduma concacduma');
+      }, delay);
+    } else if (message.toLowerCase().includes('/login')) {
+      const delay = getRandomInt(1000, 2000);
+      setTimeout(() => {
+        bot.chat('/login concacduma');
+      }, delay);
+    }
+  });
+}
 
 function equipBestGear() {
   const items = bot.inventory.items();
@@ -108,7 +116,7 @@ function itemProtection(item) {
   return 0;
 }
 
-// Combat thông minh + chờ cooldown
+// Combat thông minh + chờ hồi chiêu
 let lastAttackTime = 0;
 function startSmartCombatLoop() {
   setInterval(() => {
@@ -185,7 +193,7 @@ function scheduleNameChange() {
 
     currentUsername = newName;
     console.log(`🔁 Đổi tên bot sang: ${currentUsername}`);
-    process.exit();
+    process.exit(); // Render sẽ restart lại
   }, delay);
 }
 
