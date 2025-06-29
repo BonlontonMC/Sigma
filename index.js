@@ -1,7 +1,8 @@
+// index.js
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
-const { pvp } = require('mineflayer-pvp');
-const autoeat = require('mineflayer-auto-eat').default; // ✅ fix: dùng .default
+const pvp = require('mineflayer-pvp').plugin;
+const autoeat = require('mineflayer-auto-eat').default;
 const { Vec3 } = require('vec3');
 const express = require('express');
 
@@ -9,24 +10,18 @@ const app = express();
 const port = 3000;
 
 const usernames = [
-  'KenjiVN',
-  'NoobBui',
-  'MrDat2009',
-  'HuyGamerX',
-  'DragonBoy99',
-  'nghiemtuan123',
-  'Anhhacker1',
-  'Quang_TNT',
-  'MinhHoangMC',
-  'proplayervn'
+  'KenjiVN', 'NoobBui', 'MrDat2009', 'HuyGamerX', 'DragonBoy99',
+  'nghiemtuan123', 'Anhhacker1', 'Quang_TNT', 'MinhHoangMC', 'proplayervn'
 ];
-
 let currentUsername = usernames[Math.floor(Math.random() * usernames.length)];
 
+// Tạo bot với phiên bản cụ thể cho kết nối 1.21.5 qua ViaBackwards
 const bot = mineflayer.createBot({
   host: 'BonvaBao123.aternos.me',
   port: 34742,
-  username: currentUsername
+  username: currentUsername,
+  version: '1.20.2', // kết nối như 1.20.2 để tương thích ViaBackwards
+  auth: 'offline'
 });
 
 bot.loadPlugin(pathfinder);
@@ -38,14 +33,13 @@ bot.once('spawn', () => {
   const movements = new Movements(bot, mcData);
   bot.pathfinder.setMovements(movements);
 
-  bot.autoEat.options = {
-    priority: 'foodPoints',
-    startAt: 18,
-    bannedFood: []
-  };
+  // Cấu hình auto-eat
+  bot.autoEat.options.priority = 'foodPoints';
+  bot.autoEat.options.startAt = 18;
+  bot.autoEat.options.bannedFood = [];
   bot.autoEat.enable();
 
-  // Đăng ký + đăng nhập nếu server yêu cầu
+  // Xử lý chat đăng ký/đăng nhập nếu server yêu cầu
   listenLoginMessages();
 
   equipBestGear();
@@ -57,12 +51,13 @@ bot.once('spawn', () => {
 
 function listenLoginMessages() {
   bot.on('messagestr', (message) => {
-    if (message.toLowerCase().includes('/register') || message.toLowerCase().includes('/reg')) {
+    const msg = message.toLowerCase();
+    if (msg.includes('/register') || msg.includes('/reg')) {
       const delay = getRandomInt(5000, 7000);
       setTimeout(() => {
         bot.chat('/reg concacduma concacduma');
       }, delay);
-    } else if (message.toLowerCase().includes('/login')) {
+    } else if (msg.includes('/login')) {
       const delay = getRandomInt(1000, 2000);
       setTimeout(() => {
         bot.chat('/login concacduma');
@@ -92,7 +87,7 @@ function equipBestGear() {
 }
 
 function getArmorSlot(item) {
-  if (!item.name) return null;
+  if (!item || !item.name) return null;
   if (item.name.includes('helmet')) return 'head';
   if (item.name.includes('chestplate')) return 'torso';
   if (item.name.includes('leggings')) return 'legs';
@@ -146,12 +141,12 @@ function startSmartCombatLoop() {
 }
 
 function equipSword() {
-  const sword = bot.inventory.items().find(item => item.name.includes('sword'));
+  const sword = bot.inventory.items().find(item => item.name && item.name.includes('sword'));
   if (sword) bot.equip(sword, 'hand').catch(() => {});
 }
 
 function equipAxe() {
-  const axe = bot.inventory.items().find(item => item.name.includes('axe'));
+  const axe = bot.inventory.items().find(item => item.name && item.name.includes('axe'));
   if (axe) bot.equip(axe, 'hand').catch(() => {});
 }
 
@@ -193,7 +188,7 @@ function scheduleNameChange() {
 
     currentUsername = newName;
     console.log(`🔁 Đổi tên bot sang: ${currentUsername}`);
-    process.exit(); // Render sẽ restart lại
+    process.exit(); // render sẽ restart lại
   }, delay);
 }
 
