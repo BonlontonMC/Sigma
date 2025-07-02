@@ -21,8 +21,8 @@ let botName = usernames[Math.floor(Math.random() * usernames.length)];
 
 function createBot() {
   const bot = mineflayer.createBot({
-    host: 'BonvaBao123.aternos.me', 
-    port: 34742, 
+    host: 'dapdienthoai.aternos.me', 
+    port: 35860, 
     username: botName,
     version: false,
   });
